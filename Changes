@@ -1,2 +1,5 @@
+0.02 Sun Dec  1 00:29:56 2013
+      - try to hide Coro::* packages from CPAN indexer;
+
 0.01 Sat Nov 30 23:55:59 2013
       - original version;

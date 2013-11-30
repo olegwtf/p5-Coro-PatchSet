@@ -3,96 +3,95 @@ package Coro::PatchSet::Socket;
 use strict;
 use Coro::Socket;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
-{
-	package Coro::Socket;
-	
-	sub new {
-		my ($class, %arg) = @_;
-	
-		$arg{Proto}     ||= 'tcp';
-		$arg{LocalHost} ||= delete $arg{LocalAddr};
-		$arg{PeerHost}  ||= delete $arg{PeerAddr};
-		defined ($arg{Type}) or $arg{Type} = $arg{Proto} eq "tcp" ? SOCK_STREAM : SOCK_DGRAM;
+package # hide it from cpan
+	Coro::Socket;
 
-		socket my $fh, PF_INET, $arg{Type}, _proto ($arg{Proto})
-			or return;
-	
-		my $self = bless Coro::Handle->new_from_fh (
-			$fh,
-			timeout       => $arg{Timeout},
-			forward_class => $arg{forward_class},
-			partial       => $arg{partial},
-		), $class
-			or return;
+sub new {
+	my ($class, %arg) = @_;
 
-		${*$self}{io_socket_timeout} = $arg{Timeout};
-		
-		$self->configure (\%arg)
+	$arg{Proto}     ||= 'tcp';
+	$arg{LocalHost} ||= delete $arg{LocalAddr};
+	$arg{PeerHost}  ||= delete $arg{PeerAddr};
+	defined ($arg{Type}) or $arg{Type} = $arg{Proto} eq "tcp" ? SOCK_STREAM : SOCK_DGRAM;
+
+	socket my $fh, PF_INET, $arg{Type}, _proto ($arg{Proto})
+		or return;
+
+	my $self = bless Coro::Handle->new_from_fh (
+		$fh,
+		timeout       => $arg{Timeout},
+		forward_class => $arg{forward_class},
+		partial       => $arg{partial},
+	), $class
+		or return;
+
+	${*$self}{io_socket_timeout} = $arg{Timeout};
+	
+	$self->configure (\%arg)
+}
+
+sub configure {
+	my ($self, $arg) = @_;
+	
+	if ($arg->{ReuseAddr}) {
+		$self->setsockopt (SOL_SOCKET, SO_REUSEADDR, 1)
+			or croak "setsockopt(SO_REUSEADDR): $!";
 	}
 	
-	sub configure {
-		my ($self, $arg) = @_;
-		
-		if ($arg->{ReuseAddr}) {
-			$self->setsockopt (SOL_SOCKET, SO_REUSEADDR, 1)
-				or croak "setsockopt(SO_REUSEADDR): $!";
-		}
-		
-		if ($arg->{ReusePort}) {
-			$self->setsockopt (SOL_SOCKET, SO_REUSEPORT, 1)
-				or croak "setsockopt(SO_REUSEPORT): $!";
-		}
-		
-		if ($arg->{Broadcast}) {
-			$self->setsockopt (SOL_SOCKET, SO_BROADCAST, 1)
-				or croak "setsockopt(SO_BROADCAST): $!";
-		}
-		
-		if ($arg->{SO_RCVBUF}) {
-			$self->setsockopt (SOL_SOCKET, SO_RCVBUF, $arg->{SO_RCVBUF})
-				or croak "setsockopt(SO_RCVBUF): $!";
-		}
-		
-		if ($arg->{SO_SNDBUF}) {
-			$self->setsockopt (SOL_SOCKET, SO_SNDBUF, $arg->{SO_SNDBUF})
-				or croak "setsockopt(SO_SNDBUF): $!";
-		}
-		
-		if ($arg->{LocalPort} || $arg->{LocalHost}) {
-			my @sa = _sa($arg->{LocalHost} || "0.0.0.0", $arg->{LocalPort} || 0, $arg->{Proto});
-			$self->bind ($sa[0])
-				or croak "bind($arg->{LocalHost}:$arg->{LocalPort}): $!";
-		}
-		
-		if ($arg->{PeerHost}) {
-			my @sa = _sa ($arg->{PeerHost}, $arg->{PeerPort}, $arg->{Proto});
-		
-			for (@sa) {
-				$! = 0;
+	if ($arg->{ReusePort}) {
+		$self->setsockopt (SOL_SOCKET, SO_REUSEPORT, 1)
+			or croak "setsockopt(SO_REUSEPORT): $!";
+	}
+	
+	if ($arg->{Broadcast}) {
+		$self->setsockopt (SOL_SOCKET, SO_BROADCAST, 1)
+			or croak "setsockopt(SO_BROADCAST): $!";
+	}
+	
+	if ($arg->{SO_RCVBUF}) {
+		$self->setsockopt (SOL_SOCKET, SO_RCVBUF, $arg->{SO_RCVBUF})
+			or croak "setsockopt(SO_RCVBUF): $!";
+	}
+	
+	if ($arg->{SO_SNDBUF}) {
+		$self->setsockopt (SOL_SOCKET, SO_SNDBUF, $arg->{SO_SNDBUF})
+			or croak "setsockopt(SO_SNDBUF): $!";
+	}
+	
+	if ($arg->{LocalPort} || $arg->{LocalHost}) {
+		my @sa = _sa($arg->{LocalHost} || "0.0.0.0", $arg->{LocalPort} || 0, $arg->{Proto});
+		$self->bind ($sa[0])
+			or croak "bind($arg->{LocalHost}:$arg->{LocalPort}): $!";
+	}
+	
+	if ($arg->{PeerHost}) {
+		my @sa = _sa ($arg->{PeerHost}, $arg->{PeerPort}, $arg->{Proto});
+	
+		for (@sa) {
+			$! = 0;
 
-				if ($self->connect ($_)) {
-					next unless writable $self;
-					$! = unpack "i", $self->getsockopt (SOL_SOCKET, SO_ERROR);
-				}
-		
-				$! or return $self;
-		
-				$!{ECONNREFUSED} or $!{ENETUNREACH} or $!{ETIMEDOUT} or $!{EHOSTUNREACH}
-					or last;
+			if ($self->connect ($_)) {
+				next unless writable $self;
+				$! = unpack "i", $self->getsockopt (SOL_SOCKET, SO_ERROR);
 			}
-			
-			return;
+	
+			$! or return $self;
+	
+			$!{ECONNREFUSED} or $!{ENETUNREACH} or $!{ETIMEDOUT} or $!{EHOSTUNREACH}
+				or last;
 		}
 		
-		if (exists $arg->{Listen}) {
-			$self->listen ($arg->{Listen})
-				or return;
-		}
-		
-		$self
+		return;
 	}
+	
+	if (exists $arg->{Listen}) {
+		$self->listen ($arg->{Listen})
+			or return;
+	}
+	
+	$self
 }
 
 1;

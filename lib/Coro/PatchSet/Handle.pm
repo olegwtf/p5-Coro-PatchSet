@@ -3,45 +3,44 @@ package Coro::PatchSet::Handle;
 use strict;
 use Coro::Handle;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
-{
-	package Coro::Handle::FH;
-	
-	sub READ {
-		my $len = $_[2];
-		my $ofs = $_[3];
-		my $res;
+package # hide it from cpan
+	Coro::Handle::FH;
 
-		# first deplete the read buffer
-		if (length $_[0][3]) {
-			my $l = length $_[0][3];
-			
-			if ($l <= $len) {
-				substr ($_[1], $ofs) = $_[0][3]; $_[0][3] = "";
-				return $l;
-			} else {
-				substr ($_[1], $ofs) = substr ($_[0][3], 0, $len);
-				substr ($_[0][3], 0, $len) = "";
-				return $len;
-			}
-		}
+sub READ {
+	my $len = $_[2];
+	my $ofs = $_[3];
+	my $res;
+
+	# first deplete the read buffer
+	if (length $_[0][3]) {
+		my $l = length $_[0][3];
 		
-		while() {
-			my $r = sysread $_[0][0], $_[1], $len, $ofs;
-			if (defined $r) {
-				$len -= $r;
-				$ofs += $r;
-				$res += $r;
-				last;
-			} elsif ($! != EAGAIN && $! != EINTR && $! != WSAEWOULDBLOCK) {
-				last;
-			}
-			last if $_[0][8] || !&readable;
+		if ($l <= $len) {
+			substr ($_[1], $ofs) = $_[0][3]; $_[0][3] = "";
+			return $l;
+		} else {
+			substr ($_[1], $ofs) = substr ($_[0][3], 0, $len);
+			substr ($_[0][3], 0, $len) = "";
+			return $len;
 		}
-		
-		$res
 	}
+	
+	while() {
+		my $r = sysread $_[0][0], $_[1], $len, $ofs;
+		if (defined $r) {
+			$len -= $r;
+			$ofs += $r;
+			$res += $r;
+			last;
+		} elsif ($! != EAGAIN && $! != EINTR && $! != WSAEWOULDBLOCK) {
+			last;
+		}
+		last if $_[0][8] || !&readable;
+	}
+	
+	$res
 }
 
 1;
