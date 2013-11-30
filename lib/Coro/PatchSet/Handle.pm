@@ -1,0 +1,88 @@
+package Coro::PatchSet::Handle;
+
+use strict;
+use Coro::Handle;
+
+our $VERSION = '0.01';
+
+{
+	package Coro::Handle::FH;
+	
+	sub READ {
+		my $len = $_[2];
+		my $ofs = $_[3];
+		my $res;
+
+		# first deplete the read buffer
+		if (length $_[0][3]) {
+			my $l = length $_[0][3];
+			
+			if ($l <= $len) {
+				substr ($_[1], $ofs) = $_[0][3]; $_[0][3] = "";
+				return $l;
+			} else {
+				substr ($_[1], $ofs) = substr ($_[0][3], 0, $len);
+				substr ($_[0][3], 0, $len) = "";
+				return $len;
+			}
+		}
+		
+		while() {
+			my $r = sysread $_[0][0], $_[1], $len, $ofs;
+			if (defined $r) {
+				$len -= $r;
+				$ofs += $r;
+				$res += $r;
+				last;
+			} elsif ($! != EAGAIN && $! != EINTR && $! != WSAEWOULDBLOCK) {
+				last;
+			}
+			last if $_[0][8] || !&readable;
+		}
+		
+		$res
+	}
+}
+
+1;
+
+__END__
+
+=pod
+
+=head1 NAME
+
+Coro::PatchSet::Handle - fix Coro::Handle as much as possible
+
+=head1 SYNOPSIS
+
+    use Coro::PatchSet::Handle;
+    # or
+    # use Coro::PatchSet 'handle';
+    use Coro;
+    
+    async { ... }
+
+=head1 PATCHES
+
+=head2 sysread()
+
+In the current Coro::Handle implementation sysread($buf, $len) will always try to read $len bytes. So if we have
+some slow socket that sent you $len-1 bytes and 1 more byte after 10 minutes, Coro::Handle will wait this 1 byte
+for 10 minutes (or until error/socket closing). But this behaviour is not compatible with sysread() on system sockets,
+which Coro::Handle tries to emulate. After this patch sysread will behave like sysread on system sockets. It will read
+>= 1 and <= $len bytes for you. Bytes readed count may be less than $len if sysread() may not read it without blocking.
+But will always be >= 1 (if there was no error or socket closing). So in the situation above sysread will read $len-1
+bytes and return.
+
+=head1 SEE ALSO
+
+L<Coro::PatchSet>, L<Coro::PatchSet::Socket>
+
+=head1 COPYRIGHT
+
+Copyright Oleg G <oleg@cpan.org>.
+
+This library is free software; you can redistribute it and/or
+modify it under the same terms as Perl itself.
+cut
