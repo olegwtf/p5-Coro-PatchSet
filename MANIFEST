@@ -10,3 +10,4 @@ t/02_import.t
 t/03_socket_timeout.t
 t/04_socket_connect.t
 t/05_handle_read.t
+t/06_socket_inherit.t

@@ -10,15 +10,13 @@ package # hide it from cpan
 
 sub new {
 	my ($class, %arg) = @_;
-
-	$arg{Proto}     ||= 'tcp';
-	$arg{LocalHost} ||= delete $arg{LocalAddr};
-	$arg{PeerHost}  ||= delete $arg{PeerAddr};
+	
+	$arg{Proto} ||= 'tcp';
 	defined ($arg{Type}) or $arg{Type} = $arg{Proto} eq "tcp" ? SOCK_STREAM : SOCK_DGRAM;
-
+	
 	socket my $fh, PF_INET, $arg{Type}, _proto ($arg{Proto})
 		or return;
-
+	
 	my $self = bless Coro::Handle->new_from_fh (
 		$fh,
 		timeout       => $arg{Timeout},
@@ -26,14 +24,17 @@ sub new {
 		partial       => $arg{partial},
 	), $class
 		or return;
-
-	${*$self}{io_socket_timeout} = $arg{Timeout};
 	
 	$self->configure (\%arg)
 }
 
 sub configure {
 	my ($self, $arg) = @_;
+	
+	$arg->{LocalHost} ||= delete $arg->{LocalAddr};
+	$arg->{PeerHost}  ||= delete $arg->{PeerAddr};
+	
+	${*$self}{io_socket_timeout} = $arg->{Timeout};
 	
 	if ($arg->{ReuseAddr}) {
 		$self->setsockopt (SOL_SOCKET, SO_REUSEADDR, 1)
@@ -120,13 +121,19 @@ Coro::PatchSet::Socket - fix Coro::Socket as much as possible
 In the current Coro::Socket implementation internal C<io_socket_timeout> variable is not defined. But this variable
 exists in the IO::Socket::INET objects, which Coro::Socket tries to emulate. And many modules relies on the value of this
 variable. One of this is LWP::UserAgent, so without this variable timeout in the LWP requests will not work. This patch
-defines this variable with the value specified in the C<Timeout> constructor option.
+defines this variable with the value specified in the C<Timeout> constructor option. See t/03_socket_timeout.t
 
 =head2 connect
 
 In the current Coro::Socket implementation Coro::Socket->new(PeerAddr => $a, PeerPort => $p) always returns Coro::Socket object,
 even if connection was not successfull. But in fact it should return undef if fail occured. So, after this patch Coro::Socket
-constructor will always return proper value.
+constructor will always return proper value. See t/04_socket_connect.t
+
+=head2 inheritance
+
+In the current Coro::Socket implementation Coro::Socket handles PeerAddr argument in the constructor. This is not compatible
+with IO::Socket::INET implementation where all arguments handled inside configure(). Because of this some classes inherited
+from Coro::Socket which defines PeerAddr only inside configure() may not work. See t/06_socket_inherit.t
 
 =head1 SEE ALSO
 
