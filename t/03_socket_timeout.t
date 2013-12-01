@@ -11,7 +11,12 @@ isa_ok($sock, 'Coro::Socket');
 is(${*$sock}{io_socket_timeout}, 5, 'timeout specified');
 $sock->close();
 
-kill 15, $pid;
+if (ref $pid) {
+	$pid->kill(15);
+}
+else {
+	kill 15, $pid;
+}
 
 ($pid, $host, $port) = make_broken_http_server();
 
@@ -24,7 +29,12 @@ my $start = time;
 my $resp = $ua->get(sprintf('http://%s:%d', $host, $port));
 ok(time-$start<10, 'lwp timed out');
 
-kill 15, $pid;
+if (ref $pid) {
+	$pid->kill(15);
+}
+else {
+	kill 15, $pid;
+}
 
 done_testing;
 
@@ -34,16 +44,30 @@ sub make_broken_http_server {
 	my $serv = IO::Socket::INET->new(Listen => 1)
 		or die $@;
 	
-	defined(my $child = fork())
-		or die $!;
-	
-	if ($child == 0) {
+	my $serv_code = sub {
 		while (my $sock = $serv->accept()) {
 			sleep 10;
 			$sock->close();
 		}
+	};
+	
+	my $child;
+	if ($^O eq 'MSWin32') {
+		require threads;
+		$child = threads->create(sub {
+			$SIG{TERM} = sub { threads->exit() };
+			$serv_code->();
+		});
+		$child->detach();
+	}
+	else {
+		defined($child = fork())
+			or die $!;
 		
-		exit;
+		if ($child == 0) {
+			$serv_code->();
+			exit;
+		}
 	}
 	
 	return ($child, $serv->sockhost eq "0.0.0.0" ? "127.0.0.1" : $serv->sockhost, $serv->sockport);
