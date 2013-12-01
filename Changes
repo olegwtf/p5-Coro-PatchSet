@@ -1,3 +1,6 @@
+0.03 Sun Dec  1 12:08:42 2013
+      - tests for windows improved;
+
 0.02 Sun Dec  1 00:29:56 2013
       - try to hide Coro::* packages from CPAN indexer;
 
