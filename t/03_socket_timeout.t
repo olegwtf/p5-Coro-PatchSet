@@ -18,22 +18,24 @@ else {
 	kill 15, $pid;
 }
 
-($pid, $host, $port) = make_broken_http_server();
-
-use Coro::LWP;
-use LWP;
-
-diag "3 sec for next test";
-my $ua = LWP::UserAgent->new(timeout => 3);
-my $start = time;
-my $resp = $ua->get(sprintf('http://%s:%d', $host, $port));
-ok(time-$start<10, 'lwp timed out');
-
-if (ref $pid) {
-	$pid->kill(15);
-}
-else {
-	kill 15, $pid;
+SKIP: {
+	eval "use Coro::LWP; use LWP; 1"
+		or skip "LWP not installed", 1;
+	
+	($pid, $host, $port) = make_broken_http_server();
+	
+	diag "3 sec for next test";
+	my $ua = LWP::UserAgent->new(timeout => 3);
+	my $start = time;
+	my $resp = $ua->get(sprintf('http://%s:%d', $host, $port));
+	ok(time-$start<10, 'lwp timed out');
+	
+	if (ref $pid) {
+		$pid->kill(15);
+	}
+	else {
+		kill 15, $pid;
+	}
 }
 
 done_testing;
