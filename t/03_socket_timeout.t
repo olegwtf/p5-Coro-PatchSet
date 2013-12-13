@@ -28,7 +28,9 @@ SKIP: {
 	my $ua = LWP::UserAgent->new(timeout => 3);
 	my $start = time;
 	my $resp = $ua->get(sprintf('http://%s:%d', $host, $port));
-	ok(time-$start<10, 'lwp timed out');
+	my $timeout = time - $start;
+	ok($timeout<10, 'lwp timed out')
+		or diag "timeout was $timeout; LWP version was $LWP::UserAgent::VERSION; Net::HTTP version was $Net::HTTP::VERSION";
 	
 	if (ref $pid) {
 		$pid->kill(15);

@@ -3,7 +3,7 @@ package Coro::PatchSet::Handle;
 use strict;
 use Coro::Handle;
 
-our $VERSION = '0.05';
+our $VERSION = '0.06_1';
 
 package # hide it from cpan
 	Coro::Handle::FH;
