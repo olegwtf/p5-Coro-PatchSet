@@ -3,7 +3,7 @@ package Coro::PatchSet;
 use strict;
 use Carp;
 
-our $VERSION = '0.06_1';
+our $VERSION = '0.06_2';
 
 my %known_classes = (
 	socket => 'Coro/PatchSet/Socket.pm',

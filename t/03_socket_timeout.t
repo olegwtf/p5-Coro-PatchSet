@@ -19,8 +19,11 @@ else {
 }
 
 SKIP: {
-	eval "use Coro::LWP; use LWP; 1"
+	eval "use Coro::LWP; use LWP; use Net::HTTP; 1"
 		or skip "LWP not installed", 1;
+	
+	$LWP::UserAgent::VERSION <= 6.04 && $Net::HTTP::VERSION > 6.03
+		and skip "Your LWP installation is broken, please update LWP and Net::HTTP", 1;
 	
 	($pid, $host, $port) = make_broken_http_server();
 	
