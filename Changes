@@ -1,3 +1,6 @@
+0.06 Tue Dec 17 13:10:19 NOVT 2013
+      - LWP test fixed: LWP timeout is broken in some combinaions of LWP + Net::HTTP
+
 0.05 Mon Dec  2 13:03:19 2013
       - skip LWP timeout test if it is not installed;
 
