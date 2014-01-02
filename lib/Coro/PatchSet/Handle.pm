@@ -3,7 +3,7 @@ package Coro::PatchSet::Handle;
 use strict;
 use Coro::Handle;
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 package # hide it from cpan
 	Coro::Handle;
@@ -76,6 +76,13 @@ Coro::PatchSet::Handle - fix Coro::Handle as much as possible
     async { ... }
 
 =head1 PATCHES
+
+=head2 new_from_fh
+
+Coro::Handle::new_from_fh creates tied handle. In the current implementation it ties Glob which is not a real file
+handle. So things like IO::Handle::new_from_fd doesn't work with such tied handle. After this patch tied handle 
+will be a real filehandle (duplicate of original filehandle) and new_from_fd will work as expected. See
+t/07_handle_new_from_fd.t
 
 =head2 sysread()
 

@@ -1,3 +1,6 @@
+0.07 Thu Jan  2 19:56:06 NOVT 2014
+      - Coro::Handle::new_from_fh patch added
+
 0.06 Tue Dec 17 13:10:19 NOVT 2013
       - LWP test fixed: LWP timeout is broken in some combinaions of LWP + Net::HTTP
 
