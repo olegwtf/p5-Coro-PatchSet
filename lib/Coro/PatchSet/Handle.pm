@@ -6,6 +6,19 @@ use Coro::Handle;
 our $VERSION = '0.06';
 
 package # hide it from cpan
+	Coro::Handle;
+
+sub new_from_fh {
+	my $class = shift;
+	my $fh = shift or return;
+	open my $self, '+<&', $fh or return;
+	
+	tie *$self, 'Coro::Handle::FH', fh => $fh, @_;
+	
+	bless $self, ref $class ? ref $class : $class
+}
+
+package # hide it from cpan
 	Coro::Handle::FH;
 
 sub READ {
