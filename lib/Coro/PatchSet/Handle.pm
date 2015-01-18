@@ -96,7 +96,7 @@ bytes and return. See t/05_handle_read.t
 
 =head1 SEE ALSO
 
-L<Coro::PatchSet>, L<Coro::PatchSet::Socket>
+L<Coro::PatchSet>
 
 =head1 COPYRIGHT
 
@@ -104,4 +104,5 @@ Copyright Oleg G <oleg@cpan.org>.
 
 This library is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.
-cut
+
+=cut

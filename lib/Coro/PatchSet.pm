@@ -7,7 +7,8 @@ our $VERSION = '0.07';
 
 my %known_classes = (
 	socket => 'Coro/PatchSet/Socket.pm',
-	handle => 'Coro/PatchSet/Handle.pm'
+	handle => 'Coro/PatchSet/Handle.pm',
+	lwp    => 'Coro/PatchSet/LWP.pm',
 );
 
 sub import {
@@ -70,7 +71,7 @@ works for you. So, try to install it and if this will ok, then it is probably co
 
 =head1 SEE ALSO
 
-L<Coro::PatchSet::Socket>, L<Coro::PatchSet::Handle>
+L<Coro::PatchSet::Socket>, L<Coro::PatchSet::Handle>, L<Coro::PatchSet::LWP>
 
 =head1 COPYRIGHT
 

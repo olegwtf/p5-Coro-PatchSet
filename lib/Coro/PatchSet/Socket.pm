@@ -137,7 +137,7 @@ from Coro::Socket which defines PeerAddr only inside configure() may not work. S
 
 =head1 SEE ALSO
 
-L<Coro::PatchSet>, L<Coro::PatchSet::Handle>
+L<Coro::PatchSet>
 
 =head1 COPYRIGHT
 
