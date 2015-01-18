@@ -36,54 +36,61 @@ sub configure {
 	
 	${*$self}{io_socket_timeout} = $arg->{Timeout};
 	
-	if ($arg->{ReuseAddr}) {
-		$self->setsockopt (SOL_SOCKET, SO_REUSEADDR, 1)
-			or croak "setsockopt(SO_REUSEADDR): $!";
-	}
-	
-	if ($arg->{ReusePort}) {
-		$self->setsockopt (SOL_SOCKET, SO_REUSEPORT, 1)
-			or croak "setsockopt(SO_REUSEPORT): $!";
-	}
-	
-	if ($arg->{Broadcast}) {
-		$self->setsockopt (SOL_SOCKET, SO_BROADCAST, 1)
-			or croak "setsockopt(SO_BROADCAST): $!";
-	}
-	
-	if ($arg->{SO_RCVBUF}) {
-		$self->setsockopt (SOL_SOCKET, SO_RCVBUF, $arg->{SO_RCVBUF})
-			or croak "setsockopt(SO_RCVBUF): $!";
-	}
-	
-	if ($arg->{SO_SNDBUF}) {
-		$self->setsockopt (SOL_SOCKET, SO_SNDBUF, $arg->{SO_SNDBUF})
-			or croak "setsockopt(SO_SNDBUF): $!";
-	}
-	
-	if ($arg->{LocalPort} || $arg->{LocalHost}) {
-		my @sa = _sa($arg->{LocalHost} || "0.0.0.0", $arg->{LocalPort} || 0, $arg->{Proto});
-		$self->bind ($sa[0])
-			or croak "bind($arg->{LocalHost}:$arg->{LocalPort}): $!";
-	}
-	
-	if ($arg->{PeerHost}) {
-		my @sa = _sa ($arg->{PeerHost}, $arg->{PeerPort}, $arg->{Proto});
-	
-		for (@sa) {
-			$! = 0;
-
-			if ($self->connect ($_)) {
-				next unless writable $self;
-				$! = unpack "i", $self->getsockopt (SOL_SOCKET, SO_ERROR);
-			}
-	
-			$! or return $self;
-	
-			$!{ECONNREFUSED} or $!{ENETUNREACH} or $!{ETIMEDOUT} or $!{EHOSTUNREACH}
-				or last;
+	eval {
+		if ($arg->{ReuseAddr}) {
+			$self->setsockopt (SOL_SOCKET, SO_REUSEADDR, 1)
+				or croak "setsockopt(SO_REUSEADDR): $!";
 		}
 		
+		if ($arg->{ReusePort}) {
+			$self->setsockopt (SOL_SOCKET, SO_REUSEPORT, 1)
+				or croak "setsockopt(SO_REUSEPORT): $!";
+		}
+		
+		if ($arg->{Broadcast}) {
+			$self->setsockopt (SOL_SOCKET, SO_BROADCAST, 1)
+				or croak "setsockopt(SO_BROADCAST): $!";
+		}
+		
+		if ($arg->{SO_RCVBUF}) {
+			$self->setsockopt (SOL_SOCKET, SO_RCVBUF, $arg->{SO_RCVBUF})
+				or croak "setsockopt(SO_RCVBUF): $!";
+		}
+		
+		if ($arg->{SO_SNDBUF}) {
+			$self->setsockopt (SOL_SOCKET, SO_SNDBUF, $arg->{SO_SNDBUF})
+				or croak "setsockopt(SO_SNDBUF): $!";
+		}
+		
+		if ($arg->{LocalPort} || $arg->{LocalHost}) {
+			my @sa = _sa($arg->{LocalHost} || "0.0.0.0", $arg->{LocalPort} || 0, $arg->{Proto});
+			$self->bind ($sa[0])
+				or croak "bind($arg->{LocalHost}:$arg->{LocalPort}): $!";
+		}
+		
+		if ($arg->{PeerHost}) {
+			my @sa = _sa ($arg->{PeerHost}, $arg->{PeerPort}, $arg->{Proto});
+		
+			for (@sa) {
+				$! = 0;
+
+				if ($self->connect ($_)) {
+					next unless writable $self;
+					$! = unpack "i", $self->getsockopt (SOL_SOCKET, SO_ERROR);
+				}
+		
+				$! or return $self;
+		
+				$!{ECONNREFUSED} or $!{ENETUNREACH} or $!{ETIMEDOUT} or $!{EHOSTUNREACH}
+					or last;
+			}
+			
+			return;
+		}
+	};
+	if (my $err = $@) {
+		$err =~ s/\s+at\s+.+?line\s+\d+\.//;
+		$@ = $err;
 		return;
 	}
 	
@@ -134,6 +141,12 @@ constructor will always return proper value. See t/04_socket_connect.t
 In the current Coro::Socket implementation Coro::Socket handles PeerAddr argument in the constructor. This is not compatible
 with IO::Socket::INET implementation where all arguments handled inside configure(). Because of this some classes inherited
 from Coro::Socket which defines PeerAddr only inside configure() may not work. See t/06_socket_inherit.t
+
+=head2 return instead of croak
+
+Coro::Socket has many C<... or croak> statements. And your C<new Coro::Socket> may die when it should return false. For example
+when it will not be able to resolve host it will die instead of return false. This is not how IO::Socket::INET works. So, this
+patch will change the behavior to expected. See t/10_bad_host_name_no_croak.t
 
 =head1 SEE ALSO
 
