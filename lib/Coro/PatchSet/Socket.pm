@@ -36,6 +36,7 @@ sub configure {
 	
 	${*$self}{io_socket_timeout} = $arg->{Timeout};
 	
+	my @sa;
 	eval {
 		if ($arg->{ReuseAddr}) {
 			$self->setsockopt (SOL_SOCKET, SO_REUSEADDR, 1)
@@ -63,34 +64,35 @@ sub configure {
 		}
 		
 		if ($arg->{LocalPort} || $arg->{LocalHost}) {
-			my @sa = _sa($arg->{LocalHost} || "0.0.0.0", $arg->{LocalPort} || 0, $arg->{Proto});
+			@sa = _sa($arg->{LocalHost} || "0.0.0.0", $arg->{LocalPort} || 0, $arg->{Proto});
 			$self->bind ($sa[0])
 				or croak "bind($arg->{LocalHost}:$arg->{LocalPort}): $!";
 		}
 		
 		if ($arg->{PeerHost}) {
-			my @sa = _sa ($arg->{PeerHost}, $arg->{PeerPort}, $arg->{Proto});
-		
-			for (@sa) {
-				$! = 0;
-
-				if ($self->connect ($_)) {
-					next unless writable $self;
-					$! = unpack "i", $self->getsockopt (SOL_SOCKET, SO_ERROR);
-				}
-		
-				$! or return $self;
-		
-				$!{ECONNREFUSED} or $!{ENETUNREACH} or $!{ETIMEDOUT} or $!{EHOSTUNREACH}
-					or last;
-			}
-			
-			return;
+			@sa = _sa ($arg->{PeerHost}, $arg->{PeerPort}, $arg->{Proto});
 		}
 	};
 	if (my $err = $@) {
 		$err =~ s/\s+at\s+.+?line\s+\d+\.//;
 		$@ = $err;
+		return;
+	}
+	
+	if ($arg->{PeerHost}) {
+		for (@sa) {
+			$! = 0;
+			if ($self->connect ($_)) {
+				next unless writable $self;
+				$! = unpack "i", $self->getsockopt (SOL_SOCKET, SO_ERROR);
+			}
+			
+			$! or return $self;
+			
+			$!{ECONNREFUSED} or $!{ENETUNREACH} or $!{ETIMEDOUT} or $!{EHOSTUNREACH}
+				or last;
+		}
+		
 		return;
 	}
 	
