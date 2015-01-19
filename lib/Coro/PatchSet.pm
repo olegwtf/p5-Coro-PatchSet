@@ -3,7 +3,7 @@ package Coro::PatchSet;
 use strict;
 use Carp;
 
-our $VERSION = '0.08';
+our $VERSION = '0.09;
 
 my %known_classes = (
 	socket => 'Coro/PatchSet/Socket.pm',
@@ -25,7 +25,7 @@ sub import {
 			croak "doesn't know how to patch `$class'";
 		}
 		
-		if ($class eq 'lwp') {
+		if ($class eq 'lwp' && @_ == 1) {
 			# Net::HTTP and others may be not installed
 			eval { require $known_classes{$class} }
 		}
