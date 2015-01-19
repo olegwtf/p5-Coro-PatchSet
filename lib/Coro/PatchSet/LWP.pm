@@ -5,7 +5,7 @@ use Coro::LWP;
 use Coro::PatchSet::Handle;
 use Coro::PatchSet::Socket;
 
-our $VERSION = '0.08';
+our $VERSION = '0.09';
 
 for (@Net::HTTP::ISA, @Net::FTP::ISA, @Net::NTTP::ISA) {
 	$_ = Coro::LWP::Socket::
