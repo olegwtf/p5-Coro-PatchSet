@@ -25,7 +25,13 @@ sub import {
 			croak "doesn't know how to patch `$class'";
 		}
 		
-		require $known_classes{$class};
+		if ($class eq 'lwp') {
+			# Net::HTTP and others may be not installed
+			eval { require $known_classes{$class} }
+		}
+		else {
+			require $known_classes{$class};
+		}
 	}
 }
 
