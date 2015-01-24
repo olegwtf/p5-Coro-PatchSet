@@ -14,7 +14,7 @@ for (1..10) {
 	my $start = Time::HiRes::time();
 	$sele->can_read();
 	my $delay = Time::HiRes::time() - $start;
-	ok($delay > 0.08 && $delay < 0.2, 'time spent for select looks good')
+	ok($delay > 0.1 && $delay < 0.3, 'time spent for select looks good')
 		or diag $delay, " sec spent";
 	$sock->sysread(my $buf, 1024);
 	is($buf, 'ABCDEFGHIJKLMNOPQRT', 'buf as expected');
@@ -37,7 +37,7 @@ sub make_server {
 	my $serv_code = sub {
 		while (my $sock = $serv->accept()) {
 			for (1..10) {
-				select undef, undef, undef, 0.1;
+				select undef, undef, undef, 0.2;
 				$sock->syswrite('ABCDEFGHIJKLMNOPQRT');
 			}
 			$sock->close();
