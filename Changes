@@ -1,3 +1,6 @@
+0.10 Sat Jan 24 13:27:34 NOVT 2015
+      - fix t/08_select.t, so it will pass on NetBSD
+
 0.09 Mon Jan 19 14:49:49 NOVT 2015
       - do not die if "use Coro::Patchset" can't load LWP patch because
         Net::HTTP or others not exists
