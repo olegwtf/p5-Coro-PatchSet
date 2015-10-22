@@ -1,6 +1,7 @@
 package Coro::PatchSet::LWP;
 
 use strict;
+use Coro::Select;
 BEGIN {
 	eval {
 		*IO::Socket::SSL::tie = sub{}; # prevent overriding of our tie mechanism
