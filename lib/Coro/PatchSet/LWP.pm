@@ -6,7 +6,9 @@ BEGIN {
 	eval {
 		*IO::Socket::SSL::tie = sub{}; # prevent overriding of our tie mechanism
 		require IO::Socket::SSL;
-	}
+	};
+	# for those who want to use LWP::Protocol::socks
+	$IO::Socket::Socks::SOCKET_CLASS = Coro::LWP::Socket::;
 }
 use Coro::LWP;
 use Coro::PatchSet::Handle;
