@@ -3,7 +3,7 @@ package Coro::PatchSet::Socket;
 use strict;
 use Coro::Socket;
 
-our $VERSION = '0.11';
+our $VERSION = '0.12';
 
 package # hide it from cpan
 	Coro::Socket;
