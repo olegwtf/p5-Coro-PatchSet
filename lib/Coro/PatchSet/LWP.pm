@@ -4,7 +4,7 @@ use strict;
 use Coro::Select;
 BEGIN {
 	eval {
-		*IO::Socket::SSL::tie = sub{}; # prevent overriding of our tie mechanism
+		*IO::Socket::SSL::tie = *IO::Socket::SSL::untie = sub{}; # prevent overriding of our tie mechanism
 		require IO::Socket::SSL;
 	};
 	# for those who want to use LWP::Protocol::socks
