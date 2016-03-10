@@ -1,3 +1,6 @@
+0.13 Thu Mar 10 15:07:54 NOVT 2016
+      - fix https support in Coro::LWP a little more
+
 0.12 Thu Dec 10 17:57:29 NOVT 2015
       - fix compatibility with LWP::Protocol::socks for https requests (requires IO::Socket::Socks 0.67+)
 
