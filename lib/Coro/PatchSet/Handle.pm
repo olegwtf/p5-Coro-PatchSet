@@ -18,6 +18,27 @@ sub new_from_fh {
 	bless $self, ref $class ? ref $class : $class
 }
 
+sub sysread	{
+	tied *${$_[0]} ?
+		Coro::Handle::FH::READ(tied *${$_[0]}, $_[1], $_[2], $_[3]) :
+		sysread($_[0], $_[1], $_[2], $_[3])
+}
+sub syswrite {
+	tied *${$_[0]} ?
+		Coro::Handle::FH::WRITE(tied *${$_[0]}, $_[1], $_[2], $_[3]) :
+		syswrite($_[0], $_[1], $_[2], $_[3]);
+}
+sub fileno {
+	tied *${$_[0]} ?
+		Coro::Handle::FH::FILENO(tied *${$_[0]}) :
+		fileno($_[0])
+}
+sub close {
+	tied *${$_[0]} ?
+		Coro::Handle::FH::CLOSE(tied *${$_[0]}) :
+		close($_[0])
+}
+
 package # hide it from cpan
 	Coro::Handle::FH;
 
